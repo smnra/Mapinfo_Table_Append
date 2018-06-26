@@ -1,0 +1,84 @@
+include "mapbasic.def"
+include "menu.def"
+include "Icons.def"
+Declare Sub Main
+Declare Sub button_sub1
+
+
+
+
+Sub Main
+	Create ButtonPad "CreateRegions"  As
+
+	PushButton
+  	Icon 104
+      	Calling button_sub1
+		HelpMsg "合并所有打开的表,表结构必须相同!"
+
+End Sub
+
+dim firstTableName as String
+dim tableName as String
+dim tableNumbers as Integer
+dim TableColNumber as Integer
+dim max_rows as Integer
+dim i as Integer
+dim currTable as String
+dim map_win_id as Integer
+
+
+
+Sub button_sub1
+	onerror goto error_trap
+   
+   
+    if NumTables()>=2 then
+        firstTableName = TableInfo(0, TAB_INFO_NAME)			'获得第一个表的名称
+        Commit Table firstTableName As "./Grid_Mro.TAB" TYPE NATIVE Charset "WindowsSimpChinese"     '将第一个表另存为./Grid_Mro.TAB
+        Open Table "./Grid_Mro.TAB" Interactive as Grid_Mro  '打开./Grid_Mro.TAB 表 起别名Grid_Mro
+            print("将此表另存为Grid_Mro,并关闭:" & firstTableName )
+            Close Table firstTableName Interactive
+        
+        tableNumbers = NumTables()                       '打开的table的总数
+            print("当前打开的表总数:" & tableNumbers )
+
+        for i=1 to tableNumbers-1 Step 1
+            tableName = TableInfo(i, TAB_INFO_NAME)			'获得表名
+            TableColNumber = TableInfo(tableName,TAB_INFO_NCOLS)          '第一个表的总列数
+            max_rows = TableInfo(tableName, TAB_INFO_NROWS)       '取表的最大行数
+            print("第" & i & "个表:" & tableName & ",共" & i & TableColNumber & "列," & max_rows  & "行." )
+            
+            Insert Into Grid_Mro Select * From tableName        '把 tableName 表 添加到 Grid_Mro 表
+            
+        next
+        Commit Table Grid_Mro Interactive                   '保存Grid_Mro 表
+        
+        currTable = Grid_Mro                                 '设置当前表为 Grid_Mro
+    elseif  NumTables()=1 then
+        currTable = TableInfo(0, TAB_INFO_NAME)              '设置当前表为 第一个表
+    end if
+    
+    Map From currTable           '地图打开 currTable 表
+    map_win_id = FrontWindow()   '获取当前激活窗口的 ID
+    
+    '创建专题图层
+    shade window map_win_id 1 with avg_rsrp ranges apply all use all Brush (2,0,16777215)  -150: -115 Brush (2,0,16777215) Pen (1,1,0) ,-115: -105 Brush (2,16711680,16777215) Pen (1,1,0) ,-105: -100 Brush (2,16711935,16777215) Pen (1,1,0) ,-100: -95 Brush (2,16776960,16777215) Pen (1,1,0) ,-95: -90 Brush (2,255,16777215) Pen (1,1,0) ,-90: -85 Brush (2,65535,16777215) Pen (1,1,0) ,-85: -2 Brush (2,65280,16777215) Pen (1,1,0) default Brush (2,16777215,16777215) Pen (1,2,0)  '# use 0 round 0.1 inflect off Brush (2,16777215,16777215) at 2 by 0 color 1 # 
+    set legend window map_win_id layer prev display on shades on symbols off lines off count on title auto Font ("Arial",0,9,0) subtitle auto Font ("Arial",0,8,0) ascending off ranges Font ("Arial",0,8,0) auto display off ,auto display on ,auto display on ,auto display on ,auto display on ,auto display on ,auto display on ,auto display on  
+    'Create Designer Legend From Window map_win_id Behind Default Frame Title "# Legend" Font ("System",0,12,0) Default Frame Style "%" Font ("System",0,12,0) Frame From Layer 1
+
+    
+    
+    
+    
+done: 
+  exit sub 
+error_trap: 
+   print(error$())
+   resume done 
+end sub
+
+
+
+
+
+
